@@ -1,8 +1,6 @@
 export default file => {
-  const splitterRegex = new RegExp(/^(-|M){5}$/, 'gm')
-  const categoryRegex = new RegExp(/(?:Categories\:\s)(.+)(?:\r\n)/)
-  const servingRegex = new RegExp(/(?:Servings\:\s)(.+)(?:\r\n)/)
-  const instructionsRegex = new RegExp(/(?:\n\n(.?)\n\n).?/)
+  const splitterRegex = /^(-|M){5}$/gm
+  const instructionsRegex = /(?:\n\n(.?)\n\n).?/
   const recipeString = file
     .toString('utf-8')
     .split(splitterRegex)
@@ -17,10 +15,11 @@ export default file => {
 const parseRecipe = recipe => {
   const recipeStack = recipe.replace(new RegExp('\r', 'g'), '').split('\n')
 
-  const mealMasterRegexp = new RegExp(/^(-|m)+\sRecipe via Meal-Master(.+)$/)
-  const titleRegex = new RegExp(/(?:Title\:\s)(.+)$/)
-  const categoryRegex = new RegExp(/(?:Categories\:\s)(.+)$/)
-  const servingRegex = new RegExp(/(?:Servings\:\s)(.+)$/)
+  const mealMasterRegexp = /^(-|m)+\sRecipe via Meal-Master(.+)$/
+  const titleRegex = /(?:Title\:\s)(.+)$/
+  const categoryRegex = /(?:Categories\:\s)(.+)$/
+  const servingRegex = /(?:Servings\:\s)(.+)$/
+  const recipeRegex = /^(?:\s)*(?<quantity>(\d+\s?\d+(\/|\.)\d+)|(\d+(\/|\.)\d+)|\d+)?(?:\s)*(?<units>[a-z]*(?:\s))?(?<ingredient>.+)?/
 
   let recipeJSON = {}
 
@@ -28,8 +27,8 @@ const parseRecipe = recipe => {
     let shiftedValue = recipeStack.shift()
 
     while (!shiftedValue.trimLeft()) {
-      shiftedValue = recipeStack.shift() ?? 'undefined'
-      if (shiftedValue === 'undefined') break
+      if (shiftedValue === undefined) throw new Error('Could not parse')
+      shiftedValue = recipeStack.shift()
     }
 
     if (shiftedValue.match(mealMasterRegexp)) {
@@ -45,10 +44,22 @@ const parseRecipe = recipe => {
       const servings = shiftedValue.match(servingRegex)[1]
       shiftedValue = recipeStack.shift()
 
+      const ingredients = { main: []}
+      shiftedValue = recipeStack.shift()
+
       recipeJSON = { title, category, servings }
       console.dir(recipeJSON, { depth: null, colors: true })
+
+      let leftColumn = shiftedValue.slice(0, 41).trim()
+      let rightColumn = shiftedValue.slice(41).trim()
+
+      const leftColumnIngredients = leftColumn.match(recipeRegex)
+      console.log(leftColumnIngredients)
+
+      ingredients.main.concat(leftColumn, rightColumn)
     }
   } catch (e) {
     console.log(e)
   }
 }
+
