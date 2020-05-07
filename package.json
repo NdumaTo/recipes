@@ -1,0 +1,34 @@
+{
+  "name": "recipes",
+  "version": "1.0.0",
+  "description": "A collection of all my random recipes",
+  "main": "app.js",
+  "scripts": {
+    "test": "mocha -R spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NdumaTo/recipes.git"
+  },
+  "keywords": [
+    "recipe"
+  ],
+  "author": "Tola Ndumari",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NdumaTo/recipes/issues"
+  },
+  "homepage": "https://github.com/NdumaTo/recipes#readme",
+  "dependencies": {
+    "@babel/core": "^7.9.6",
+    "@babel/node": "^7.8.7",
+    "@babel/preset-env": "^7.9.6",
+    "@babel/preset-react": "^7.9.4"
+  },
+  "devDependencies": {
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^3.1.3",
+    "prettier": "^2.0.5"
+  }
+}
