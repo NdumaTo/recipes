@@ -9,7 +9,8 @@ export default file => {
 
   recipeString.pop()
 
-  parseRecipe(recipeString[1])
+  recipeString.forEach( recipe => recipeJSON.push(parseRecipe(recipe)))
+  return recipeJSON
 }
 
 const parseRecipe = recipe => {
@@ -19,7 +20,6 @@ const parseRecipe = recipe => {
   const titleRegex = /(?:Title\:\s)(.+)$/
   const categoryRegex = /(?:Categories\:\s)(.+)$/
   const servingRegex = /(?:Servings\:\s)(.+)$/
-  const recipeRegex = /^(?:\s)*(?<quantity>(\d+\s?\d+(\/|\.)\d+)|(\d+(\/|\.)\d+)|\d+)?(?:\s)*(?<units>[a-z]*(?:\s))?(?<ingredient>.+)?/
 
   let recipeJSON = {}
 
@@ -44,22 +44,68 @@ const parseRecipe = recipe => {
       const servings = shiftedValue.match(servingRegex)[1]
       shiftedValue = recipeStack.shift()
 
-      const ingredients = { main: []}
-      shiftedValue = recipeStack.shift()
+      const ingredients = {}
 
-      recipeJSON = { title, category, servings }
-      console.dir(recipeJSON, { depth: null, colors: true })
+      let currentRecipeSection = 'main'
 
-      let leftColumn = shiftedValue.slice(0, 41).trim()
-      let rightColumn = shiftedValue.slice(41).trim()
+      //Iterate all the ingredients
+      while (recipeStack[0].trim() || recipeStack[1].startsWith('---')) {
+        const isNewCategory = line => line.match(/^-{3,}.+-{3,}$/)
+        let ingredientStack = []
 
-      const leftColumnIngredients = leftColumn.match(recipeRegex)
-      console.log(leftColumnIngredients)
+        // Iterate a ingredient block - stop at an empty line or a new category
+        while (!isNewCategory(recipeStack[1]) && recipeStack[0].trim()) {
+          ingredientStack.push(recipeStack.shift())
+        }
 
-      ingredients.main.concat(leftColumn, rightColumn)
+        const parsedIngredients = parseIngredients(ingredientStack)
+        ingredients[currentRecipeSection] = parsedIngredients
+        if (isNewCategory(recipeStack[1])) {
+          shiftedValue = recipeStack.shift()
+          const sectionName = shiftedValue.match(/^(?:-{3,}).+-(?:{3,})$/)
+        }
+      }
+
+      recipeStack.shift()
+      const method = recipeStack.join('\n')
+      recipeJSON = { title, category, servings, ingredients, method }
+      return recipeJSON
     }
-  } catch (e) {
-    console.log(e)
-  }
+  } catch (e) { return {}}
 }
 
+const parseIngredients = ingredientsBlock => {
+  const ingredientsRegex = /^(?:\s)*(?<quantity>(\d+\s?\d+(\/|\.)\d+)|(\d+(\/|\.)\d+)|\d+)?(?:\s)*(?<units>[a-z]*(?:\s))?(?<ingredient>.+)?/
+  let leftColumn = []
+  let rightColumn = []
+
+  ingredientsBlock.forEach(line => {
+    leftColumn.push(line.slice(0, 41))
+    rightColumn.push(line.slice(41))
+  })
+
+  let ingredients = []
+  const parseRow = row => {
+    if (row.trim().startsWith('-')) {
+      ingredients[ingredients.length - 1].ingredient.concat(row.trim())
+    } else if (row.trim()) {
+      const parsedRow = row.match(ingredientsRegex)
+
+      const quantity = parsedRow.groups.quantity
+        ? parsedRow.groups.quantity.trim()
+        : null
+      const units = parsedRow.groups.units
+        ? parsedRow.groups.units.trim()
+        : null
+      const ingredient = parsedRow.groups.ingredient
+        ? parsedRow.groups.ingredient.trim()
+        : null
+
+      ingredients.push({ quantity, units, ingredient })
+    }
+  }
+
+  leftColumn.forEach(parseRow)
+  rightColumn.forEach(parseRow)
+  return ingredients
+}
